@@ -21,6 +21,10 @@ import java.util.Map;
 import com.lambdaworks.redis.RedisClient;
 import com.lambdaworks.redis.RedisConnection;
 
+import udacity.storm.tools.*;
+
+//import com.google.com.collect.ImmutableList;
+//import com.google.com.collect.Lists;
 /**
  * A bolt that prints the word and count to redis
  */
@@ -46,13 +50,21 @@ public class ReportBolt extends BaseRichBolt
   public void execute(Tuple tuple)
   {
     // access the first column 'word'
-    String word = tuple.getStringByField("word");
+    //String word = tuple.getStringByField("word");
+
+    Rankings rankablelist = (Rankings) tuple.getValue(0);
+
+    for(Rankable r: rankablelist.getRankings()){
+      String word = r.getObject().toString();
+      Long count = r.getCount();
+      redis.publish("WordCountTopology", word + "|" + Long.toString(count));
+    }
 
     // access the second column 'count'
-    Integer count = tuple.getIntegerByField("count");
+    //Integer count = tuple.getIntegerByField("count");
 
     // publish the word count to redis using word as the key
-    redis.publish("WordCountTopology", word + "|" + Long.toString(count));
+
   }
 
   public void declareOutputFields(OutputFieldsDeclarer declarer)

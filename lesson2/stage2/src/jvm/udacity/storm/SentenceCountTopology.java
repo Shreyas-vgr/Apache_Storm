@@ -28,6 +28,8 @@ import java.util.Random;
 import com.lambdaworks.redis.RedisClient;
 import com.lambdaworks.redis.RedisConnection;
 
+import udacity.storm.spout.RandomSentenceSpout;
+
 /**
  * This topology demonstrates how to count distinct words from
  * a stream of words.
@@ -35,12 +37,12 @@ import com.lambdaworks.redis.RedisConnection;
  * This is an example for Udacity Real Time Analytics Course - ud381
  *
  */
-public class WordCountTopology {
+public class SentenceCountTopology {
 
   /**
    * Constructor - does nothing
    */
-  private WordCountTopology() { }
+  private SentenceCountTopology() { }
 
   /**
    * A spout that emits a random word
@@ -133,13 +135,19 @@ public class WordCountTopology {
       //Syntax to get the word from the 1st column of incoming tuple
       String word = tuple.getString(0);
 
-      if(countMap.get(word) == null){
-        countMap.put(word,1);
-      }else{
-        Integer val = countMap.get(word);
-        countMap.put(word,++val);
-      }
+      // check if the word is present in the map
+      if (countMap.get(word) == null) {
 
+      // not present, add the word with a count of 1
+      countMap.put(word, 1);
+      } else {
+
+      // already there, hence get the count
+      Integer val = countMap.get(word);
+
+      // increment the count and save it to the map
+      countMap.put(word, ++val);
+    }
 
       //After countMap is updated, emit word and count to output collector
       // Syntax to emit the word and count (uncomment to emit)
@@ -163,7 +171,7 @@ public class WordCountTopology {
 
       outputFieldsDeclarer.declare(new Fields("word","count"));
 
-      //END YOUR CODE - Part 2-of-3
+      //END YOUR CODE Part 2-of-3
       //****************************************************
     }
   }
@@ -214,18 +222,21 @@ public class WordCountTopology {
     TopologyBuilder builder = new TopologyBuilder();
 
     // attach the word spout to the topology - parallelism of 5
-    builder.setSpout("word-spout", new WordSpout(), 5);
+    //builder.setSpout("word-spout", new WordSpout(), 5);
+
+    builder.setSpout("sentence-spout", new RandomSentenceSpout(), 1);
 
     // attach the count bolt using fields grouping - parallelism of 15
-    builder.setBolt("count-bolt", new CountBolt(), 15).fieldsGrouping("word-spout", new Fields("word"));
+    builder.setBolt("count-bolt", new CountBolt(), 15).fieldsGrouping("sentence-spout", new Fields("sentence"));
 
     // attach the report bolt using global grouping - parallelism of 1
     //***************************************************
     // BEGIN YOUR CODE - Part 3-of-3
 
-    builder.setBolt("report-bolt",new ReportBolt(), 1).globalGrouping("count-bolt");
+    builder.setBolt("report-bolt", new ReportBolt(), 1).globalGrouping("count-bolt");
 
-    // END YOUR CODE - Part 3-of-3
+
+    // END YOUR CODE Part 3-of-3
     //***************************************************
 
     // create the default config object
@@ -257,8 +268,10 @@ public class WordCountTopology {
       // submit the topology to the local cluster
       cluster.submitTopology("word-count", conf, builder.createTopology());
 
+      //**********************************************************************
       // let the topology run for 30 seconds. note topologies never terminate!
       Thread.sleep(30000);
+      //**********************************************************************
 
       // we are done, so shutdown the local cluster
       cluster.shutdown();

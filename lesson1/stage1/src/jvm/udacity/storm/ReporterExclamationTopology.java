@@ -16,6 +16,10 @@ import backtype.storm.utils.Utils;
 
 import java.util.Map;
 
+import com.lambdaworks.redis.RedisClient;
+
+import com.lambdaworks.redis.RedisConnection;
+
 //********* TO DO 1-of-4 imported http://mvnrepository.com/artifact/com.lambdaworks/lettuce/
 
 
@@ -55,6 +59,8 @@ public class ReporterExclamationTopology {
     // place holder to keep the connection to redis
 
 
+    RedisConnection<String,String> redis;
+
     //********* END 2-of-4
 
     @Override
@@ -68,7 +74,8 @@ public class ReporterExclamationTopology {
 
       //********* TO DO 3-of-4
       // instantiate a redis connection
-
+      RedisClient client = new RedisClient("localhost",6379);
+      redis = client.connect();
       // initiate the actual connection
 
       //********* END 3-of-4
@@ -88,8 +95,8 @@ public class ReporterExclamationTopology {
       _collector.emit(tuple, new Values(exclamatedWord.toString()));
 
       //********* TO DO 4-of-4 Uncomment redis reporter
-      //long count = 30;
-      //redis.publish("WordCountTopology", exclamatedWord.toString() + "|" + Long.toString(count));
+      long count = 30;
+      redis.publish("WordCountTopology", exclamatedWord.toString() + "|" + Long.toString(count));
       //********* END 4-of-4
     }
 

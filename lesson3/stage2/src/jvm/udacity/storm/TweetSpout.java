@@ -55,7 +55,13 @@ public class TweetSpout extends BaseRichSpout
     public void onStatus(Status status) 
     {
       // add the tweet into the queue buffer
-      queue.offer(status.getText());
+      //queue.offer(status.getText());
+      String url;
+      if(status.getURLEntities().length != 0){
+        url = status.getURLEntities()[0].getURL();
+        queue.offer(url);
+      }
+      
     }
 
     @Override

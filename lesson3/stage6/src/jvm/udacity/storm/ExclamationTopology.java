@@ -18,7 +18,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 //******* Import MyLikesSpout and MyNamesSpout
-
+import udacity.storm.spout.MyLikesSpout;
+import udacity.storm.spout.MyNamesSpout;
 
 
 /**
@@ -39,6 +40,8 @@ public class ExclamationTopology {
   {
     // To output tuples from this bolt to the next stage bolts, if any
     OutputCollector _collector;
+    private  Map<String, String> favoritesMap;
+
 
     @Override
     public void prepare(
@@ -48,6 +51,8 @@ public class ExclamationTopology {
     {
       // save the output collector for emitting tuples
       _collector = collector;
+
+      favoritesMap = new HashMap<String, String>();
     }
 
     @Override
@@ -58,16 +63,36 @@ public class ExclamationTopology {
       /*
        * Use component id to modify behavior
        */
+      String componentId = tuple.getSourceComponent();
 
-      // get the column word from tuple
-      String word = tuple.getString(0);
+      if(componentId.equals("my-likes")){
+          String name = tuple.getString(0);
+          String favorite = tuple.getString(1);
 
-      // build the word with the exclamation marks appended
-      StringBuilder exclamatedWord = new StringBuilder();
-      exclamatedWord.append(word).append("!!!");
+          if(favoritesMap.get(name) == null){
+            favoritesMap.put(name,favorite);
+          }          
+      } else if (componentId.equals("my-names")){
 
-      // emit the word with exclamations
-      _collector.emit(tuple, new Values(exclamatedWord.toString()));
+          String name = tuple.getString(0);
+
+          if(favoritesMap.get(name) != null){
+            String favorite = favoritesMap.get(name);
+            StringBuilder exclamatedfavorites = new StringBuilder();
+            exclamatedfavorites.append(name).append("\'s favorite is ").append(favorite).append("!!!");
+
+            _collector.emit(new Values(exclamatedfavorites.toString()));
+          }
+        else if (componentId.equals("exclaim1")){
+            String sentence = tuple.getString(0);
+
+            StringBuilder exclamations = new StringBuilder();
+            exclamations.append(sentence).append("!!!");
+
+            _collector.emit(new Values(exclamations.toString()));
+        }
+
+      }
     }
 
     @Override
@@ -88,11 +113,17 @@ public class ExclamationTopology {
     // attach the word spout to the topology - parallelism of 10
     builder.setSpout("word", new TestWordSpout(), 10);
 
+    builder.setSpout("my-likes", new MyLikesSpout(), 10);
+
+    builder.setSpout("my-names", new MyNamesSpout(), 10);
+
     // attach the exclamation bolt to the topology - parallelism of 3
-    builder.setBolt("exclaim1", new ExclamationBolt(), 3).shuffleGrouping("word");
+    builder.setBolt("exclaim1", new ExclamationBolt(), 3).shuffleGrouping("my-likes").shuffleGrouping("my-names");
 
     // attach another exclamation bolt to the topology - parallelism of 2
     builder.setBolt("exclaim2", new ExclamationBolt(), 2).shuffleGrouping("exclaim1");
+
+    builder.setBolt("report", new ReportBolt(),1).globalGrouping("exclaim2");
 
     // create the default config object
     Config conf = new Config();

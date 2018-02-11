@@ -41,10 +41,7 @@ class TweetTopology
 
     // now create the tweet spout with the credentials
     TweetSpout tweetSpout = new TweetSpout(
-        "[Your customer key]",
-        "[Your secret key]",
-        "[Your access token]",
-        "[Your access secret]"
+        //Access tokens
     );
 
     // attach the tweet spout to the topology - parallelism of 1
@@ -53,8 +50,11 @@ class TweetTopology
     // attach the parse tweet bolt using shuffle grouping
     //builder.setBolt("parse-tweet-bolt", new ParseTweetBolt(), 10).shuffleGrouping("tweet-spout");
 
+    builder.setBolt("python-URL-bolt", new URLBolt(), 10).shuffleGrouping("tweet-spout");
+
+    
     //************* replace Java ParseTweetBolt with Java/Python SplitSentence
-    builder.setBolt("python-split-sentence", new SplitSentence(), 10).shuffleGrouping("tweet-spout");
+    builder.setBolt("python-split-sentence", new SplitSentence(), 10).shuffleGrouping("python-URL-bolt");
 
     // attach the count bolt using fields grouping - parallelism of 15
     //builder.setBolt("count-bolt", new CountBolt(), 15).fieldsGrouping("parse-tweet-bolt", new Fields("tweet-word"));
